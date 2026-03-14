@@ -1,0 +1,27 @@
+{
+  "name": "CricClash AI",
+  "short_name": "CricClash",
+  "description": "The Ultimate IPL Fan Battlefield",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0B0B0F",
+  "theme_color": "#00C2FF",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

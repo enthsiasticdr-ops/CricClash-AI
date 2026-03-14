@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meme Studio - CricClash AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00C2FF">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" href="images/logo.png" type="image/png">
+</head>
+<body class="theme-neutral">
+    <div id="appShell" class="app-shell hidden">
+        <header class="app-header glass-panel">
+            <div class="header-logo" onclick="location.href='index.html'" style="cursor:pointer;">
+                <img src="images/logo.png" alt="CricClash AI" class="nav-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <h2>CRICCLASH <span class="ai-text">AI</span></h2>
+            </div>
+            
+            <div class="user-profile-nav">
+                <div id="profileNavBtn" class="profile-nav-btn" title="View Profile">
+                    <div class="level-badge" id="navLevelBadge">Lvl 1</div>
+                    <img id="navAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" alt="Avatar" class="nav-avatar">
+                </div>
+            </div>
+        </header>
+
+        <main class="studio-layout">
+            <div class="studio-creator glass-panel">
+                <div class="panel-header">
+                    <h3>🤖 AI Meme Generator</h3>
+                    <div class="ai-badge">Advanced AI</div>
+                </div>
+                
+                <div class="studio-main-grid">
+                    <div class="meme-canvas">
+                        <div class="meme-preview" id="memePreview">
+                            <div class="meme-placeholder" id="memePlaceholder">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                <p>Ready to roast your rivals?</p>
+                            </div>
+                            <img id="generatedMemeImg" src="" style="display:none; width:100%; border-radius:12px;" alt="Generated Meme">
+                        </div>
+                        
+                        <form id="memeForm" class="studio-input-group">
+                            <input type="text" id="memePrompt" placeholder="Describe the roast (e.g., RCB fans after losing vs CSK)" required>
+                            <button type="submit" class="btn-magic" id="generateMemeBtn">Generate Masterpiece</button>
+                        </form>
+                    </div>
+
+                    <div class="meme-history">
+                        <div class="section-header">
+                            <h3>🔥 Global Feed</h3>
+                        </div>
+                        <div class="meme-feed" id="memeFeed">
+                            <!-- Feed items -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav glass-panel">
+        <a href="index.html" class="nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>Hub</span>
+        </a>
+        <a href="battlefield.html" class="nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            <span>Battle</span>
+        </a>
+        <a href="#" class="nav-item" id="navDM">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.5 8.5 0 0 1 8.5 7.9z"></path></svg>
+            <span>DMs</span>
+        </a>
+        <a href="studio.html" class="nav-item active">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <span>Studio</span>
+        </a>
+    </nav>
+
+    <script src="js/supabase.js" defer></script>
+    <script src="js/auth.js" defer></script>
+    <script src="js/gamification.js" defer></script>
+    <script src="js/memes.js" defer></script>
+    <script src="js/dm.js" defer></script>
+    <script src="app.js" defer></script>
+</body>
+</html>

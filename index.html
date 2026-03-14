@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CricClash AI - The Ultimate IPL Fan Arena</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00C2FF">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="images/logo.png" type="image/png">
+    <link rel="shortcut icon" href="images/logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="images/logo.png">
+    <script>
+        // Global error boundary to help catch issues that prevent the app from loading
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('Global Error:', msg, 'at', url, ':', lineNo);
+            // If the splash screen is still visible after an error, try to hide it so the user sees SOMETHING
+            setTimeout(() => {
+                const splash = document.getElementById('splashScreen');
+                if (splash && !splash.classList.contains('hidden')) {
+                    console.warn('Hiding splash screen due to unexpected error.');
+                    splash.classList.add('hidden');
+                    const loginPortal = document.getElementById('loginPortal');
+                    if (loginPortal) loginPortal.classList.remove('hidden');
+                }
+            }, 5000);
+            return false;
+        };
+    </script>
+</head>
+<body class="theme-neutral">
+    
+    <!-- Splash Screen / Loading -->
+    <div id="splashScreen" class="splash-screen">
+        <div class="logo-container">
+            <img src="images/logo.png" alt="CricClash AI" class="splash-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <svg class="splash-logo" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none;">
+                <!-- Fallback SVG if logo.png is missing -->
+                <path d="M50 150L100 50L150 150H120L100 100L80 150H50Z" fill="url(#blue-gradient)"/>
+                <path d="M70 180H130M80 165H120" stroke="var(--primary-ai-blue)" stroke-width="8" stroke-linecap="round"/>
+                <circle cx="100" cy="50" r="10" fill="var(--secondary-neon)"/>
+                <defs>
+                    <linearGradient id="blue-gradient" x1="50" y1="50" x2="150" y2="150" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="var(--primary-ai-blue)"/>
+                        <stop offset="1" stop-color="var(--secondary-neon)"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <h1 class="splash-title">CRICCLASH <span class="ai-text">AI</span></h1>
+        </div>
+        <div class="loading-bar"><div class="loading-progress"></div></div>
+    </div>
+
+    <!-- Login Portal -->
+    <div id="loginPortal" class="login-portal hidden">
+        <div class="glass-card login-card">
+            <div class="login-header">
+                <img src="images/logo.png" alt="CricClash AI" class="form-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <svg class="form-logo-fallback" viewBox="0 0 200 200" style="display:none; width:80px; height:80px; margin: 0 auto 1rem;">
+                    <path d="M50 150L100 50L150 150H120L100 100L80 150H50Z" fill="url(#blue-gradient-sm)"/>
+                    <path d="M70 180H130M80 165H120" stroke="var(--primary-ai-blue)" stroke-width="8" stroke-linecap="round"/>
+                    <circle cx="100" cy="50" r="10" fill="var(--secondary-neon)"/>
+                    <defs>
+                        <linearGradient id="blue-gradient-sm" x1="50" y1="50" x2="150" y2="150" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="var(--primary-ai-blue)"/>
+                            <stop offset="1" stop-color="var(--secondary-neon)"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <h2>Enter the Arena</h2>
+                <p>Join the ultimate IPL fan battlefield.</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="input-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" required placeholder="Virat Kohli">
+                </div>
+                <!-- <div class="input-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="fan@cricclash.com">
+                </div> -->
+                <div class="input-group">
+                    <label for="iplTeam">Select IPL Team</label>
+                    <select id="iplTeam" required>
+                        <option value="" disabled selected>Choose your loyalty...</option>
+                        <option value="CSK">Chennai Super Kings</option>
+                        <option value="MI">Mumbai Indians</option>
+                        <option value="RCB">Royal Challengers Bangalore</option>
+                        <option value="KKR">Kolkata Knight Riders</option>
+                        <option value="RR">Rajasthan Royals</option>
+                        <option value="SRH">Sunrisers Hyderabad</option>
+                        <option value="DC">Delhi Capitals</option>
+                        <option value="PBKS">Punjab Kings</option>
+                        <option value="GT">Gujarat Titans</option>
+                        <option value="LSG">Lucknow Super Giants</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary login-btn">
+                    <span>Enter CricClash Arena</span>
+                    <div class="btn-glow"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Layout (Bento Grid) -->
+    <div id="appShell" class="app-shell hidden">
+        <!-- Header -->
+        <header class="app-header glass-panel">
+            <div class="header-logo">
+                <img src="images/logo.png" alt="CricClash AI" class="nav-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <svg class="nav-logo-fallback" viewBox="0 0 200 200" style="display:none; width:40px; height:40px;">
+                    <path d="M50 150L100 50L150 150H120L100 100L80 150H50Z" fill="url(#blue-gradient-nav)"/>
+                    <circle cx="100" cy="50" r="10" fill="var(--secondary-neon)"/>
+                    <defs>
+                        <linearGradient id="blue-gradient-nav" x1="50" y1="50" x2="150" y2="150" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="var(--primary-ai-blue)"/>
+                            <stop offset="1" stop-color="var(--secondary-neon)"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <h2>CRICCLASH <span class="ai-text">AI</span></h2>
+            </div>
+            
+            <div class="user-profile-nav">
+                <a href="quiz.html" class="quiz-nav-link" title="Quiz Arena">
+                    <span class="quiz-icon">🎯</span>
+                    <span class="quiz-text">Quiz Arena</span>
+                </a>
+                <div id="profileNavBtn" class="profile-nav-btn" title="View Profile">
+                    <div class="level-badge" id="navLevelBadge">Lvl 1</div>
+                    <div class="user-info-nav">
+                        <span id="navUserName" class="nav-name">Guest</span>
+                        <span id="navUserTeam" class="nav-team">Neutral</span>
+                    </div>
+                    <img id="navAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" alt="Avatar" class="nav-avatar">
+                </div>
+            </div>
+        </header>
+
+        <!-- Advanced Top Bar (Stories & Polls) -->
+        <section class="stories-poll-bar glass-panel">
+            <div class="stories-container" id="storiesContainer">
+                <div class="add-story-circle" id="addStoryBtn">+</div>
+                <!-- Stories load here -->
+            </div>
+            <div class="active-poll-widget glass-panel" id="activePollWidget">
+                <div class="poll-loading">Loading active poll...</div>
+            </div>
+        </section>
+
+        <div id="liveScoreBoard" class="glass-panel" style="margin: 0 1rem 1.5rem 1rem; padding: 1.5rem; text-align: center; cursor: pointer;" onclick="location.href='battlefield.html'">
+            <h2 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--secondary-neon);">🏏 IPL 2026 Opener</h2>
+            <h3 id="matchName" style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #fff;">RCB vs SRH</h3>
+            <p id="score" style="font-size: 1.8rem; font-weight: 800; font-family: 'Space Grotesk', sans-serif; margin-bottom: 0.2rem;">0/0 (0.0)</p>
+            <p id="status" style="font-size: 0.85rem; color: var(--text-muted);">Match starting soon...</p>
+        </div>
+
+        <!-- Premium Hub (Command Center) -->
+        <main class="hub-container">
+            <div class="hub-welcome">
+                <h1>Welcome Back, <span id="welcomeUserName" class="ai-text">Titan</span></h1>
+                <p>Select your deployment zone in the CricClash Arena.</p>
+            </div>
+
+            <div class="hub-grid">
+                <!-- Battlefield Card -->
+                <a href="battlefield.html" class="hub-card">
+                    <div class="badge">Live Match</div>
+                    <div class="hub-card-icon">⚔️</div>
+                    <h3>Battlefield</h3>
+                    <p>Enter the live arena. Roast rivals, predict balls, and chat in real-time.</p>
+                    <div class="btn-enter">Enter Combat</div>
+                </a>
+
+                <!-- Quiz Card -->
+                <a href="quiz.html" class="hub-card">
+                    <div class="hub-card-icon">🎯</div>
+                    <h3>Quiz Arena</h3>
+                    <p>Test your IPL knowledge. Win fast and earn massive XP rewards.</p>
+                    <div class="btn-enter">Play Now</div>
+                </a>
+
+                <!-- Studio Card -->
+                <a href="studio.html" class="hub-card">
+                    <div class="hub-card-icon">🤖</div>
+                    <h3>Meme Studio</h3>
+                    <p>Create brutal AI roasts. Generate memes that make the crowd go wild.</p>
+                    <div class="btn-enter">Start Creating</div>
+                </a>
+            </div>
+        </main>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal-overlay hidden">
+        <div class="glass-card profile-card">
+            <button class="close-modal" id="closeProfileBtn">&times;</button>
+            <div class="profile-header">
+                <img id="modalAvatar" src="" alt="Avatar" class="modal-avatar">
+                <h2 id="modalName">Name</h2>
+                <div class="modal-team" id="modalTeam">Team</div>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-box">
+                    <span class="stat-value" id="modalLevel">1</span>
+                    <span class="stat-label">Level</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="modalRoasts">0</span>
+                    <span class="stat-label">Roasts</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="modalXP">0</span>
+                    <span class="stat-label">Total XP</span>
+                </div>
+            </div>
+            
+            <div class="xp-progress-container">
+                <div class="xp-header">
+                    <span>XP Progress</span>
+                    <span id="xpProgressText">0 / 100 XP</span>
+                </div>
+                <div class="xp-bar-bg">
+                    <div class="xp-bar-fill" id="xpBarFill" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <button class="btn-outline logout-btn" id="logoutBtn">Leave Arena</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav glass-panel">
+        <a href="index.html" class="nav-item active">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>Hub</span>
+        </a>
+        <a href="battlefield.html" class="nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            <span>Battle</span>
+        </a>
+        <a href="#" class="nav-item" id="navDM">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.5 8.5 0 0 1 8.5 7.9z"></path></svg>
+            <span>DMs</span>
+        </a>
+        <a href="studio.html" class="nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <span>Studio</span>
+        </a>
+    </nav>
+    <script src="js/supabase.js" defer></script>
+    <script src="js/auth.js" defer></script>
+    <script src="js/gamification.js" defer></script>
+    <script src="js/chat.js" defer></script>
+    <script src="js/memes.js" defer></script>
+    <script src="js/social.js" defer></script>
+    <script src="js/engagement.js" defer></script>
+    <script src="js/dm.js" defer></script>
+    <script src="app.js" defer></script>
+</body>
+</html>
