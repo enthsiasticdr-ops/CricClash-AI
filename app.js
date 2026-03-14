@@ -259,16 +259,27 @@ window.App = {
             setTimeout(() => toast.remove(), 400);
         }, 3000);
     },
-    setupPollWidget() {
+    async setupPollWidget() {
         const widget = document.getElementById('activePollWidget');
         if (!widget) return;
         
         let rcbVotes = parseInt(localStorage.getItem('poll_rcb')) || 0;
         let srhVotes = parseInt(localStorage.getItem('poll_srh')) || 0;
+        
+        // Attempt Global Sync
+        try {
+            if (window.supabaseClient) {
+                const { data } = await window.supabaseClient.from('polls').select('*').eq('id', 'match1').single();
+                if (data) {
+                    rcbVotes = data.rcb_votes || rcbVotes;
+                    srhVotes = data.srh_votes || srhVotes;
+                }
+            }
+        } catch(e) { console.warn("Poll global sync failed, using local."); }
+
         const total = rcbVotes + srhVotes;
         
-        // Use a "Winning Probability" approach:
-        // Base probability (e.g. 50/50) + weighted influence of fan sentiment
+        // "Law of Comparison" Probability
         let rcbProb = 50;
         let srhProb = 50;
         
@@ -285,7 +296,6 @@ window.App = {
             <div style="font-size:0.9rem; font-weight:600; margin-bottom:12px; color:#fff;">RCB vs SRH - Who wins the clash?</div>
             
             <div style="display:flex; flex-direction:column; gap:10px;" id="pollOptions">
-                <!-- RCB Progress/Button -->
                 <div class="poll-row" style="position:relative;">
                     <button class="poll-opt-btn" id="btnRCB" onclick="window.App.votePoll('RCB')" 
                         style="width:100%; position:relative; overflow:hidden; background:rgba(255,0,0,0.05); border:1px solid ${votedTeam === 'RCB' ? 'var(--rcb)' : 'rgba(255,255,255,0.1)'}; color:#fff; border-radius:12px; padding:12px 16px; cursor:${hasVoted ? 'default' : 'pointer'}; font-size:0.95rem; font-weight:700; text-align:left; transition:all 0.3s; z-index:1; ${hasVoted && votedTeam !== 'RCB' ? 'opacity:0.6;' : ''}"
@@ -299,7 +309,6 @@ window.App = {
                     </button>
                 </div>
 
-                <!-- SRH Progress/Button -->
                 <div class="poll-row" style="position:relative;">
                     <button class="poll-opt-btn" id="btnSRH" onclick="window.App.votePoll('SRH')" 
                         style="width:100%; position:relative; overflow:hidden; background:rgba(255,96,0,0.05); border:1px solid ${votedTeam === 'SRH' ? 'var(--srh)' : 'rgba(255,255,255,0.1)'}; color:#fff; border-radius:12px; padding:12px 16px; cursor:${hasVoted ? 'default' : 'pointer'}; font-size:0.95rem; font-weight:700; text-align:left; transition:all 0.3s; z-index:1; ${hasVoted && votedTeam !== 'SRH' ? 'opacity:0.6;' : ''}"
@@ -320,22 +329,42 @@ window.App = {
         `;
     },
 
-    votePoll(team) {
+    async votePoll(team) {
         if (localStorage.getItem('poll_voted') === 'true') return;
 
         let rcbVotes = parseInt(localStorage.getItem('poll_rcb')) || 0;
         let srhVotes = parseInt(localStorage.getItem('poll_srh')) || 0;
 
+        // Try to fetch latest before adding
+        try {
+            if (window.supabaseClient) {
+                const { data } = await window.supabaseClient.from('polls').select('*').eq('id', 'match1').single();
+                if (data) {
+                    rcbVotes = data.rcb_votes || rcbVotes;
+                    srhVotes = data.srh_votes || srhVotes;
+                }
+            }
+        } catch(e) {}
+
         if (team === 'RCB') rcbVotes++;
         else srhVotes++;
 
-        // Save
+        // Save Local
         localStorage.setItem('poll_rcb', rcbVotes);
         localStorage.setItem('poll_srh', srhVotes);
         localStorage.setItem('poll_voted', 'true');
         localStorage.setItem('poll_voted_team', team);
 
-        // Calc Winning Probability (sentiment comparison)
+        // Save Global
+        try {
+             if (window.supabaseClient) {
+                 await window.supabaseClient.from('polls').upsert({
+                     id: 'match1', rcb_votes: rcbVotes, srh_votes: srhVotes
+                 });
+             }
+        } catch(e) { console.warn("Global poll save failed."); }
+
+        // Calc Winning Probability
         const total = rcbVotes + srhVotes;
         const rcbProb = Math.round((rcbVotes / total) * 100);
         const srhProb = 100 - rcbProb;
@@ -358,8 +387,10 @@ window.App = {
         });
 
         const selectedBtn = team === 'RCB' ? btnRcb : btnSrh;
-        selectedBtn.style.borderColor = team === 'RCB' ? 'var(--rcb)' : 'var(--srh)';
-        selectedBtn.querySelector('span').innerHTML += ' ✅';
+        if(selectedBtn) {
+            selectedBtn.style.borderColor = team === 'RCB' ? 'var(--rcb)' : 'var(--srh)';
+            selectedBtn.querySelector('span').innerHTML += ' ✅';
+        }
 
         if (progRcb) progRcb.style.width = rcbProb + '%';
         if (progSrh) progSrh.style.width = srhProb + '%';
@@ -384,15 +415,6 @@ window.App = {
 
     async fetchLiveScore() {
         if (this.liveScoreInterval) clearInterval(this.liveScoreInterval);
-        
-        let simInterval = null;
-        let sisStarted = false;
-
-        const startSim = () => {
-            if (sisStarted) return;
-            sisStarted = true;
-            this.simulateMatch('RCB', 'SRH');
-        };
 
         const updateScore = async () => {
             try {
@@ -400,24 +422,30 @@ window.App = {
                     "https://api.cricapi.com/v1/cricScore?apikey=9929b697-391c-4ce6-8dbc-3a49be133bcb",
                     {cache: "no-store"}
                 );
+                
+                if (!response.ok) throw new Error("API Limit or Error");
                 const data = await response.json();
                 
-                // If API is limited or has no data, fall back to simulation
+                // If API is limited or has no data
                 if (!data || data.status === "failure" || !data.data || !data.data.length) {
-                    startSim();
+                    this.showOfflineScorecard();
                     return;
                 }
                 
-                // Match finding logic
-                let match = data.data.find(m => m.name && (m.name.includes("RCB") || m.name.includes("SRH") || m.name.includes("Bangalore") || m.name.includes("Hyderabad")));
-                if (!match) match = data.data[0];
-                if (!match || !match.name) { startSim(); return; }
+                // Try to find a major match (RCB/SRH/CSK/MI/etc)
+                let match = data.data.find(m => m.name && (m.name.includes("RCB") || m.name.includes("SRH") || m.name.includes("CSK") || m.name.includes("MI") || m.name.includes("India") || m.name.includes("ENG")));
+                if (!match) match = data.data[0]; 
+                
+                if (!match || !match.name) { 
+                    this.showOfflineScorecard();
+                    return; 
+                }
 
                 // UI Updates
                 const updates = {
                     matchName: match.name,
-                    score: match.score || "No score",
-                    status: match.status || "Live"
+                    score: match.score || "Match Not Started",
+                    status: match.status || "Check back soon"
                 };
 
                 for (const [id, val] of Object.entries(updates)) {
@@ -432,35 +460,53 @@ window.App = {
                 const tickerEl = document.getElementById('matchTickerText');
 
                 if (team1El) {
-                    const teams = match.name.split('vs').map(t => t.trim());
-                    team1El.innerText = teams[0] ? teams[0].substring(0,3).toUpperCase() : "RCB";
-                    if (team2El) team2El.innerText = teams[1] ? teams[1].substring(0,3).toUpperCase() : "SRH";
+                    const teams = match.name.split(/vs|v/i).map(t => t.trim());
+                    team1El.innerText = teams[0] ? teams[0].substring(0,3).toUpperCase() : "T1";
+                    if (team2El) team2El.innerText = teams[1] ? teams[1].substring(0,3).toUpperCase() : "T2";
                 }
-                if (liveScore1El) liveScore1El.innerText = match.score || "0/0";
-                if (tickerEl) tickerEl.textContent = match.status || "LIVE";
+                if (liveScore1El) liveScore1El.innerText = match.score || "-/-";
+                if (tickerEl) tickerEl.textContent = match.status || "WAITING FOR TOSS";
 
                 // Chat/XP Connections
                 if (this.lastScoreString && this.lastScoreString !== match.score) {
                     const s = (match.score || "").toLowerCase();
                     const last = (this.lastScoreString || "").toLowerCase();
+                    // Basic heuristic for auto-messaging
                     if (s.includes("6") && !last.includes("6")) {
                         this.autoSendChatMessage("🔥 SIX JUST HIT!");
-                        if (window.Engagement) window.Engagement.checkPrediction("6");
                     } else if (s.includes("w") && !last.includes("w")) {
                         this.autoSendChatMessage("💀 WICKET FALLS!");
-                        if (window.Engagement) window.Engagement.checkPrediction("Wicket");
                     }
                 }
                 this.lastScoreString = match.score;
 
             } catch (err) {
-                console.error("API Error, falling back:", err);
-                startSim();
+                console.error("API Error:", err);
+                this.showOfflineScorecard();
             }
         };
 
         updateScore();
         this.liveScoreInterval = setInterval(updateScore, 10000);
+    },
+
+    showOfflineScorecard() {
+        // Fallback UI when API is unavailable or limits reached
+        const t1El = document.getElementById('teamTag1');
+        const t2El = document.getElementById('teamTag2');
+        const matchNameEl = document.getElementById('matchName');
+        const scoreEl = document.getElementById('liveScore1');
+        const hubScore = document.getElementById('score');
+        const hubStatus = document.getElementById('status');
+        const ticker = document.getElementById('matchTickerText');
+
+        if (t1El) t1El.innerText = "TBA";
+        if (t2El) t2El.innerText = "TBA";
+        if (matchNameEl) matchNameEl.innerText = "Next IPL Match";
+        if (scoreEl) scoreEl.textContent = "0/0";
+        if (hubScore) hubScore.textContent = "Awaiting Live Feed";
+        if (hubStatus) hubStatus.textContent = "API Limit Reached or Offline";
+        if (ticker) ticker.textContent = "📡 LIVE FEED DISCONNECTED";
     },
 
     simulateMatch(t1, t2) {

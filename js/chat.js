@@ -126,45 +126,48 @@ window.Chat = {
         }
     },
 
-    subscribeToMessages() {
-        window.supabaseClient
-            .channel('realtime:messages:v4')
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'messages'
-            }, async (payload) => {
-                const msg = payload.new;
+    async subscribeToMessages() {
+        if (!window.supabaseClient) return;
+        console.log("Chat: Subscribing to realtime updates...");
+        
+        // Remove any existing subscription before creating a new one
+        if (this.subscription) {
+            await window.supabaseClient.removeChannel(this.subscription);
+        }
 
-                // Skip if already rendered (optimistic)
-                if (this.renderedIds.has(msg.id)) return;
-                this.renderedIds.add(msg.id);
+        this.subscription = window.supabaseClient
+            .channel('public:messages')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'messages' },
+                async (payload) => {
+                    const newMsg = payload.new;
+                    if (!newMsg) return;
 
-                // Fetch sender's profile
-                const { data: userData } = await window.supabaseClient
-                    .from('users')
-                    .select('name, team, avatar_url, level')
-                    .eq('id', msg.user_id)
-                    .single();
+                    // If we sent this recently, ignore (optimistic UI)
+                    if (this.renderedIds.has(newMsg.id)) return;
+                    
+                    // Fetch user info for the new message
+                    try {
+                        const { data: user } = await window.supabaseClient
+                            .from('users')
+                            .select('name, avatar_url, team, level')
+                            .eq('id', newMsg.user_id)
+                            .single();
 
-                if (!this.renderedIds) this.renderedIds = new Set();
-                if (this.renderedIds.has(msg.id)) return;
+                        if (user) {
+                            newMsg.users = user;
+                        } else {
+                             newMsg.users = { name: 'Titan', team: '', avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newMsg.user_id}`, level: 1 };
+                        }
+                    } catch(e) { /* ignore */ }
 
-                const fullMsg = {
-                    ...msg,
-                    users: userData || {
-                        name: 'Titan',
-                        team: '',
-                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.user_id}`,
-                        level: 1
-                    }
-                };
-
-                this.messages.unshift(fullMsg);
-                if (this.messages.length > 100) this.messages.pop();
-                this.renderedIds.add(msg.id);
-                this.renderSingleMessage(fullMsg, true);
-            })
+                    this.messages.unshift(newMsg);
+                    if (this.messages.length > 100) this.messages.pop();
+                    this.renderedIds.add(newMsg.id);
+                    this.renderSingleMessage(newMsg, true);
+                }
+            )
             .subscribe((status) => {
                 console.log('Chat realtime:', status);
             });
